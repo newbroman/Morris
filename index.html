@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#1a0f07" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Nine Men's Morris</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; min-height: 100%; background: #120803; overscroll-behavior: none; }
+  body { font-family: 'EB Garamond', Georgia, serif; color: #ead9a8;
+    background: radial-gradient(ellipse at 50% 0%, #2a1608 0%, #120803 80%); min-height: 100vh; }
+  #app { max-width: 520px; margin: 0 auto; padding: 16px 16px 32px; display: flex; flex-direction: column; min-height: 100vh; }
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(180deg, #3a2612 0%, #1e130a 100%); border: 1px solid #5a3e10; color: #e8c97a;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(246,216,136,0.15), 0 2px 4px rgba(0,0,0,0.5); }
+  .icon-btn:active { transform: translateY(1px); }
+  .title { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600;
+    letter-spacing: 0.06em; color: #e8c97a; text-align: center; flex: 1; }
+  .score-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .badge { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px;
+    background: linear-gradient(180deg, #2a1a0c 0%, #160d05 100%); border: 1px solid #4a3010;
+    position: relative; overflow: hidden; transition: all 0.3s; }
+  .badge.active { border-color: #c9982a;
+    box-shadow: 0 0 0 1px rgba(201,152,42,0.4), inset 0 1px 0 rgba(246,216,136,0.15); }
+  .badge.active::after { content: ''; position: absolute; inset: 0; border-radius: 12px;
+    animation: softPulse 2.2s ease-in-out infinite; pointer-events: none; }
+  @keyframes softPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(246,216,136,0); }
+    50% { box-shadow: 0 0 0 6px rgba(246,216,136,0.15); } }
+  .badge-piece { width: 28px; height: 28px; border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.2); flex-shrink: 0; }
+  .badge-piece.ivory { background: radial-gradient(circle at 35% 30%, #fbf3dc 0%, #ead9a8 55%, #9c8654 100%); }
+  .badge-piece.ebony { background: radial-gradient(circle at 35% 30%, #5a463a 0%, #2c1d14 50%, #0d0704 100%); }
+  .badge-name { font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 600;
+    color: #ead9a8; letter-spacing: 0.04em; display: flex; align-items: center; gap: 6px; }
+  .badge-stats { font-size: 12px; color: #a88e5c; margin-top: 2px; }
+  .you-tag { font-size: 9px; padding: 2px 5px; border-radius: 3px; background: #c9982a; color: #1a0e06;
+    letter-spacing: 0.08em; font-family: 'EB Garamond', serif; font-weight: 600; }
+  .status { padding: 12px 14px; border-radius: 10px;
+    background: linear-gradient(180deg, rgba(74,48,16,0.35) 0%, rgba(28,17,6,0.35) 100%);
+    border: 1px solid #3a2512; font-family: 'EB Garamond', serif; font-size: 15px; color: #ead9a8;
+    text-align: center; margin-bottom: 14px; letter-spacing: 0.02em; font-style: italic;
+    animation: fadeUp 0.4s ease; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  .status.remove { border-color: #7a2a1d;
+    background: linear-gradient(180deg, rgba(122,42,29,0.35) 0%, rgba(40,12,6,0.35) 100%); color: #f2c7a0; }
+  .status.waiting { border-color: #4a3010; color: #a88e5c; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .dots span { animation: blink 1.4s infinite both; opacity: 0.2; }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,60%,100% { opacity: 0.2; } 30% { opacity: 1; } }
+  .board-wrap { position: relative; margin: 0 auto; }
+  .board-bg { position: absolute; inset: 0; border-radius: 14px;
+    background: radial-gradient(ellipse at 30% 20%, #6d4a25 0%, #4a2f16 45%, #2c1a0a 100%); }
+  .board-grain { position: absolute; inset: 0; border-radius: 14px; pointer-events: none;
+    background:
+      repeating-linear-gradient(92deg, rgba(255,220,160,0.04) 0px, rgba(255,220,160,0.04) 1px, transparent 1px, transparent 4px),
+      repeating-linear-gradient(88deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 1px, transparent 1px, transparent 7px);
+    mix-blend-mode: overlay; }
+  .board-edge { position: absolute; inset: 0; border-radius: 14px; pointer-events: none;
+    box-shadow: inset 0 0 0 2px #6a4818, inset 0 0 0 5px #2a180a, inset 0 0 40px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.6); }
+  svg.board { position: relative; display: block; }
+  .menu-wrap { padding: 40px 20px 30px; text-align: center; animation: fadeUp 0.5s ease; }
+  .crest-row { display: flex; justify-content: center; margin-bottom: 14px; }
+  .crest { padding: 14px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #3a2512 0%, #1a0e06 80%);
+    box-shadow: inset 0 0 0 1px #5a3e10, 0 6px 20px rgba(0,0,0,0.6); }
+  .menu-title { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600;
+    letter-spacing: 0.06em; color: #f0d48a; margin: 0 0 4px; }
+  .menu-sub { font-family: 'EB Garamond', serif; font-style: italic; font-size: 14px;
+    color: #a88e5c; margin-bottom: 28px; letter-spacing: 0.03em; }
+  .menu-buttons { display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 0 auto; }
+  .btn-primary { padding: 14px 18px; border-radius: 10px;
+    background: linear-gradient(180deg, #c9982a 0%, #7a5518 100%); border: 1px solid #5a3e10; color: #1a0e06;
+    font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 600; letter-spacing: 0.06em;
+    cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,235,180,0.5), 0 3px 6px rgba(0,0,0,0.5); }
+  .btn-primary:active { transform: translateY(1px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { padding: 14px 18px; border-radius: 10px;
+    background: linear-gradient(180deg, #3a2612 0%, #1e130a 100%); border: 1px solid #5a3e10; color: #e8c97a;
+    font-family: 'Cormorant Garamond', serif; font-size: 16px; font-weight: 500; letter-spacing: 0.06em;
+    cursor: pointer; box-shadow: inset 0 1px 0 rgba(246,216,136,0.15), 0 2px 4px rgba(0,0,0,0.5); }
+  .btn-ghost { padding: 10px 16px; border-radius: 8px; background: transparent; border: 1px solid transparent;
+    color: #a88e5c; font-family: 'EB Garamond', serif; font-size: 14px; font-style: italic;
+    cursor: pointer; letter-spacing: 0.03em; }
+  .opt-label { font-family: 'Cormorant Garamond', serif; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 0.15em; color: #8a7346; margin: 14px 0 6px; }
+  .segmented { display: flex; border-radius: 10px; overflow: hidden; border: 1px solid #5a3e10; }
+  .seg-btn { flex: 1; padding: 10px 8px;
+    background: linear-gradient(180deg, #2a1a0c 0%, #160d05 100%); border: none;
+    border-right: 1px solid #3a2512; color: #a88e5c;
+    font-family: 'EB Garamond', serif; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+  .seg-btn:last-child { border-right: none; }
+  .seg-btn.active { background: linear-gradient(180deg, #c9982a 0%, #7a5518 100%);
+    color: #1a0e06; font-weight: 600; box-shadow: inset 0 1px 0 rgba(255,235,180,0.4); }
+  .rules { text-align: left; max-width: 440px; margin: 0 auto;
+    font-family: 'EB Garamond', serif; font-size: 15px; line-height: 1.55; color: #d4bd85; }
+  .rules h3 { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 600;
+    letter-spacing: 0.06em; color: #f0d48a; margin: 18px 0 4px;
+    border-bottom: 1px solid #3a2512; padding-bottom: 3px; }
+  .rules p { margin: 0 0 8px; }
+  .footer { margin-top: 28px; font-size: 11px; color: #6a5434; font-style: italic;
+    letter-spacing: 0.08em; text-align: center; }
+  .game-over { margin-top: 20px; padding: 20px 16px; text-align: center;
+    background: linear-gradient(180deg, rgba(74,48,16,0.3) 0%, rgba(28,17,6,0.3) 100%);
+    border-radius: 12px; border: 1px solid #5a3e10; display: flex; flex-direction: column; gap: 10px;
+    animation: fadeUp 0.5s ease; }
+  .game-over-text { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 600;
+    letter-spacing: 0.08em; color: #f0d48a; margin-bottom: 8px; }
+  .room-panel { padding: 24px 20px; text-align: center;
+    background: linear-gradient(180deg, rgba(74,48,16,0.3) 0%, rgba(28,17,6,0.3) 100%);
+    border-radius: 12px; border: 1px solid #5a3e10; max-width: 360px; margin: 0 auto;
+    animation: fadeUp 0.4s ease; }
+  .room-label { font-family: 'Cormorant Garamond', serif; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 0.2em; color: #8a7346; margin-bottom: 10px; }
+  .room-code { font-family: 'Cormorant Garamond', serif; font-size: 56px; font-weight: 700;
+    letter-spacing: 0.15em; color: #f0d48a; padding: 14px 0 6px;
+    text-shadow: 0 2px 8px rgba(201,152,42,0.35); }
+  .room-hint { font-family: 'EB Garamond', serif; font-style: italic; color: #a88e5c;
+    font-size: 14px; margin: 6px 0 16px; }
+  .room-share { display: flex; gap: 8px; margin-top: 8px; }
+  .room-share button { flex: 1; }
+  .code-input { width: 100%; padding: 16px 14px;
+    background: linear-gradient(180deg, #160d05 0%, #2a1a0c 100%);
+    border: 1px solid #5a3e10; border-radius: 10px; color: #f0d48a;
+    font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600;
+    letter-spacing: 0.3em; text-align: center; text-transform: uppercase;
+    outline: none; margin-bottom: 14px; }
+  .code-input:focus { border-color: #c9982a; }
+  .connection-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #c9982a; margin-right: 6px; box-shadow: 0 0 6px #c9982a; }
+  .connection-dot.disconnected { background: #7a2a1d; box-shadow: 0 0 6px #7a2a1d; }
+  .connection-dot.connecting { background: #a88e5c; box-shadow: 0 0 6px #a88e5c; animation: blink 1.2s infinite; }
+  .conn-bar { font-size: 12px; color: #a88e5c; text-align: center; margin-bottom: 10px;
+    font-family: 'EB Garamond', serif; font-style: italic; }
+  .error-msg { color: #f2c7a0; font-size: 14px; padding: 10px;
+    background: rgba(122,42,29,0.3); border: 1px solid #7a2a1d; border-radius: 8px;
+    margin-bottom: 12px; font-family: 'EB Garamond', serif; font-style: italic; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const POINTS = [[0,0],[3,0],[6,0],[1,1],[3,1],[5,1],[2,2],[3,2],[4,2],
+  [0,3],[1,3],[2,3],[4,3],[5,3],[6,3],[2,4],[3,4],[4,4],
+  [1,5],[3,5],[5,5],[0,6],[3,6],[6,6]];
+const ADJ = [[1,9],[0,2,4],[1,14],[4,10],[1,3,5,7],[4,13],[7,11],[4,6,8],[7,12],
+  [0,10,21],[3,9,11,18],[6,10,15],[8,13,17],[5,12,14,20],[2,13,23],
+  [11,16],[15,17,19],[12,16],[10,19],[16,18,20,22],[13,19],[9,22],[19,21,23],[14,22]];
+const MILLS = [[0,1,2],[3,4,5],[6,7,8],[9,10,11],[12,13,14],[15,16,17],[18,19,20],[21,22,23],
+  [0,9,21],[3,10,18],[6,11,15],[1,4,7],[16,19,22],[8,12,17],[5,13,20],[2,14,23]];
+const POINT_MILLS = POINTS.map((_, i) => MILLS.filter(m => m.includes(i)));
+const FLY_ENABLED = true;
+const PEER_PREFIX = "morris-v1-";
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+const makesMill = (board, point, player) =>
+  POINT_MILLS[point].some(m => m.every(i => (i === point ? player : board[i]) === player));
+const allInMill = (board, player) => {
+  const owned = board.map((v,i) => v===player ? i : -1).filter(i => i>=0);
+  return owned.length > 0 && owned.every(i => POINT_MILLS[i].some(m => m.every(j => board[j]===player)));
+};
+const opponentRemovableTargets = (board, opponent) => {
+  const owned = board.map((v,i) => v===opponent ? i : -1).filter(i => i>=0);
+  if (owned.length === 0) return [];
+  const allMilled = allInMill(board, opponent);
+  return allMilled ? owned : owned.filter(i => !POINT_MILLS[i].some(m => m.every(j => board[j]===opponent)));
+};
+const playerCanMove = (board, player, handCount, flyEnabled) => {
+  if (handCount > 0) return true;
+  const owned = board.map((v,i) => v===player ? i : -1).filter(i => i>=0);
+  if (flyEnabled && owned.length <= 3) return owned.length > 0;
+  return owned.some(i => ADJ[i].some(j => board[j]===null));
+};
+
+function evalBoard(state, forPlayer) {
+  const opp = forPlayer === "W" ? "B" : "W";
+  const { board, hand, removed } = state;
+  const myTotal = hand[forPlayer] + board.filter(v => v===forPlayer).length;
+  const opTotal = hand[opp] + board.filter(v => v===opp).length;
+  if (removed[opp] >= 7) return 100000;
+  if (removed[forPlayer] >= 7) return -100000;
+  if (myTotal < 3) return -100000;
+  if (opTotal < 3) return 100000;
+  let score = 0;
+  score += (board.filter(v => v===forPlayer).length - board.filter(v => v===opp).length) * 10;
+  score += (removed[opp] - removed[forPlayer]) * 15;
+  const myMills = MILLS.filter(m => m.every(i => board[i]===forPlayer)).length;
+  const opMills = MILLS.filter(m => m.every(i => board[i]===opp)).length;
+  score += (myMills - opMills) * 18;
+  if (hand[forPlayer] === 0 && hand[opp] === 0) {
+    let myMob = 0, opMob = 0;
+    for (let i = 0; i < 24; i++) {
+      if (board[i]===forPlayer) myMob += ADJ[i].filter(j => board[j]===null).length;
+      if (board[i]===opp) opMob += ADJ[i].filter(j => board[j]===null).length;
+    }
+    score += (myMob - opMob) * 2;
+  }
+  return score;
+}
+
+function generateMoves(state, player, flyEnabled) {
+  const { board, hand } = state;
+  const moves = [];
+  const opp = player === "W" ? "B" : "W";
+  const pieces = board.filter(v => v===player).length;
+  const flying = flyEnabled && hand[player] === 0 && pieces === 3;
+  if (hand[player] > 0) {
+    for (let i = 0; i < 24; i++) if (board[i] === null) moves.push({ type: "place", to: i });
+  } else {
+    for (let i = 0; i < 24; i++) {
+      if (board[i] !== player) continue;
+      const dests = flying ? board.map((v,j) => v===null ? j : -1).filter(j=>j>=0) : ADJ[i].filter(j => board[j]===null);
+      for (const j of dests) moves.push({ type: "move", from: i, to: j });
+    }
+  }
+  const expanded = [];
+  for (const mv of moves) {
+    const nb = [...board];
+    if (mv.type === "move") nb[mv.from] = null;
+    nb[mv.to] = player;
+    if (makesMill(nb, mv.to, player)) {
+      const targets = opponentRemovableTargets(nb, opp);
+      if (targets.length === 0) expanded.push({ ...mv, remove: null });
+      else for (const t of targets) expanded.push({ ...mv, remove: t });
+    } else expanded.push({ ...mv, remove: null });
+  }
+  return expanded;
+}
+
+function applyMoveAI(state, player, mv) {
+  const opp = player === "W" ? "B" : "W";
+  const board = [...state.board];
+  const hand = { ...state.hand };
+  const removed = { ...state.removed };
+  if (mv.type === "place") { board[mv.to] = player; hand[player]--; }
+  else { board[mv.from] = null; board[mv.to] = player; }
+  if (mv.remove !== null && mv.remove !== undefined) { board[mv.remove] = null; removed[opp]++; }
+  return { board, hand, removed };
+}
+
+function minimax(state, player, depth, alpha, beta, forPlayer, flyEnabled) {
+  const opp = forPlayer === "W" ? "B" : "W";
+  const myPieces = state.board.filter(v => v===forPlayer).length + state.hand[forPlayer];
+  const opPieces = state.board.filter(v => v===opp).length + state.hand[opp];
+  if (depth === 0 || myPieces < 3 || opPieces < 3) return evalBoard(state, forPlayer);
+  const moves = generateMoves(state, player, flyEnabled);
+  if (moves.length === 0) return player === forPlayer ? -50000 : 50000;
+  if (player === forPlayer) {
+    let best = -Infinity;
+    for (const mv of moves) {
+      const ns = applyMoveAI(state, player, mv);
+      const v = minimax(ns, opp, depth-1, alpha, beta, forPlayer, flyEnabled);
+      if (v > best) best = v;
+      if (best > alpha) alpha = best;
+      if (beta <= alpha) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (const mv of moves) {
+      const ns = applyMoveAI(state, player, mv);
+      const v = minimax(ns, opp, depth-1, alpha, beta, forPlayer, flyEnabled);
+      if (v < best) best = v;
+      if (best < beta) beta = best;
+      if (beta <= alpha) break;
+    }
+    return best;
+  }
+}
+
+function chooseAIMove(state, player, difficulty, flyEnabled) {
+  const moves = generateMoves(state, player, flyEnabled);
+  if (moves.length === 0) return null;
+  const depth = difficulty === "easy" ? 1 : difficulty === "medium" ? 3 : 4;
+  const opp = player === "W" ? "B" : "W";
+  let best = -Infinity, bestMoves = [];
+  for (const mv of moves) {
+    const ns = applyMoveAI(state, player, mv);
+    let v = minimax(ns, opp, depth-1, -Infinity, Infinity, player, flyEnabled);
+    if (difficulty === "easy") v += (Math.random()-0.5) * 30;
+    if (v > best) { best = v; bestMoves = [mv]; }
+    else if (v === best) bestMoves.push(mv);
+  }
+  return bestMoves[Math.floor(Math.random()*bestMoves.length)];
+}
+
+// State
+let state = null;
+let aiThinking = false;
+let boardSize = 360;
+
+// Remote
+let peer = null;
+let conn = null;
+let roomCode = null;
+let remoteRole = null;
+let mySide = null;
+let remoteStatus = "idle";
+let remoteError = "";
+
+function newGame(mode, opts = {}) {
+  state = {
+    board: Array(24).fill(null),
+    hand: { W: 9, B: 9 }, removed: { W: 0, B: 0 },
+    turn: "W", phase: "place", selected: null,
+    mode, aiSide: opts.aiSide || "B", difficulty: opts.difficulty || "medium",
+    winner: null,
+  };
+  aiThinking = false;
+  renderGame();
+  scheduleAI();
+}
+
+function resetBoardSize() {
+  const w = Math.min(window.innerWidth - 32, 460);
+  boardSize = Math.max(280, w);
+}
+
+function piecesOnBoard(p) { return state.board.filter(v => v===p).length; }
+function isFlying(p) { return FLY_ENABLED && state.hand[p] === 0 && piecesOnBoard(p) === 3; }
+
+function statusMessage() {
+  if (state.phase === "gameover") return state.winner ? `${state.winner === "W" ? "Ivory" : "Ebony"} wins!` : "Draw";
+  if (state.mode === "remote" && state.turn !== mySide) {
+    const other = state.turn === "W" ? "Ivory" : "Ebony";
+    return `Waiting for ${other}…`;
+  }
+  const who = state.turn === "W" ? "Ivory" : "Ebony";
+  const youTag = state.mode === "remote" ? " (you)" : "";
+  if (state.phase === "remove") return `${who}${youTag}: take an opposing piece`;
+  if (state.hand[state.turn] > 0) return `${who}${youTag}: place a piece (${state.hand[state.turn]} left)`;
+  if (isFlying(state.turn)) return `${who}${youTag}: fly a piece to any empty point`;
+  return `${who}${youTag}: move a piece along a line`;
+}
+
+function checkEndgame(s) {
+  const opp = s.turn === "W" ? "B" : "W";
+  const oppTotal = s.hand[opp] + s.board.filter(v => v===opp).length;
+  if (oppTotal < 3 && s.hand[opp] === 0) return { ...s, phase: "gameover", winner: s.turn };
+  if (!playerCanMove(s.board, s.turn, s.hand[s.turn], FLY_ENABLED)) return { ...s, phase: "gameover", winner: opp };
+  return s;
+}
+
+function canInteract() {
+  if (!state || state.phase === "gameover") return false;
+  if (aiThinking) return false;
+  if (state.mode === "ai" && state.turn === state.aiSide) return false;
+  if (state.mode === "remote") {
+    if (remoteStatus !== "connected") return false;
+    if (state.turn !== mySide) return false;
+  }
+  return true;
+}
+
+function getHighlighted() {
+  const s = state;
+  const set = new Set();
+  if (!canInteract()) return set;
+  const me = s.turn;
+  if (s.phase === "remove") {
+    const opp = me === "W" ? "B" : "W";
+    opponentRemovableTargets(s.board, opp).forEach(i => set.add(i));
+    return set;
+  }
+  if (s.hand[me] > 0) {
+    for (let i = 0; i < 24; i++) if (s.board[i]===null) set.add(i);
+    return set;
+  }
+  if (s.selected !== null) {
+    const flying = isFlying(me);
+    const dests = flying ? s.board.map((v,j)=>v===null?j:-1).filter(j=>j>=0) : ADJ[s.selected].filter(j => s.board[j]===null);
+    dests.forEach(i => set.add(i));
+  } else {
+    const flying = isFlying(me);
+    for (let i = 0; i < 24; i++) {
+      if (s.board[i] !== me) continue;
+      if (flying || ADJ[i].some(j => s.board[j]===null)) set.add(i);
+    }
+  }
+  return set;
+}
+
+function applyTap(s, idx) {
+  const me = s.turn;
+  const opp = me === "W" ? "B" : "W";
+  if (s.phase === "remove") {
+    if (s.board[idx] !== opp) return null;
+    const targets = opponentRemovableTargets(s.board, opp);
+    if (!targets.includes(idx)) return null;
+    const nb = [...s.board]; nb[idx] = null;
+    const nremoved = { ...s.removed, [opp]: s.removed[opp] + 1 };
+    const nt = opp;
+    return checkEndgame({ ...s, board: nb, removed: nremoved, turn: nt,
+      phase: s.hand[nt] > 0 ? "place" : "move", selected: null });
+  }
+  if (s.hand[me] > 0) {
+    if (s.board[idx] !== null) return null;
+    const nb = [...s.board]; nb[idx] = me;
+    const nhand = { ...s.hand, [me]: s.hand[me] - 1 };
+    if (makesMill(nb, idx, me)) {
+      const targets = opponentRemovableTargets(nb, opp);
+      if (targets.length === 0) {
+        const nt = opp;
+        return checkEndgame({ ...s, board: nb, hand: nhand, turn: nt,
+          phase: nhand[nt] > 0 ? "place" : "move", selected: null });
+      }
+      return { ...s, board: nb, hand: nhand, phase: "remove", selected: null };
+    }
+    const nt = opp;
+    return checkEndgame({ ...s, board: nb, hand: nhand, turn: nt,
+      phase: nhand[nt] > 0 ? "place" : "move", selected: null });
+  }
+  if (s.phase === "move") {
+    const flying = isFlying(me);
+    if (s.selected === null) {
+      if (s.board[idx] !== me) return null;
+      if (!flying && !ADJ[idx].some(j => s.board[j]===null)) return null;
+      return { ...s, selected: idx };
+    }
+    if (idx === s.selected) return { ...s, selected: null };
+    if (s.board[idx] === me) {
+      if (!flying && !ADJ[idx].some(j => s.board[j]===null)) return null;
+      return { ...s, selected: idx };
+    }
+    if (s.board[idx] !== null) return null;
+    if (!flying && !ADJ[s.selected].includes(idx)) return null;
+    const nb = [...s.board]; nb[s.selected] = null; nb[idx] = me;
+    if (makesMill(nb, idx, me)) {
+      const targets = opponentRemovableTargets(nb, opp);
+      if (targets.length === 0) {
+        const nt = opp;
+        return checkEndgame({ ...s, board: nb, turn: nt,
+          phase: s.hand[nt] > 0 ? "place" : "move", selected: null });
+      }
+      return { ...s, board: nb, phase: "remove", selected: null };
+    }
+    const nt = opp;
+    return checkEndgame({ ...s, board: nb, turn: nt,
+      phase: s.hand[nt] > 0 ? "place" : "move", selected: null });
+  }
+  return null;
+}
+
+function handleTap(idx) {
+  if (!canInteract()) return;
+  const ns = applyTap(state, idx);
+  if (ns === null) return;
+  state = ns;
+  renderGame();
+  if (state.mode === "remote" && conn && conn.open) {
+    try { conn.send({ type: "tap", idx }); } catch(e) { console.warn(e); }
+  }
+  scheduleAI();
+}
+
+function scheduleAI() {
+  if (!state || state.phase === "gameover") return;
+  if (state.mode !== "ai") return;
+  if (state.turn !== state.aiSide) return;
+  aiThinking = true;
+  renderGame();
+  setTimeout(() => {
+    const snapshot = { board: state.board, hand: state.hand, removed: state.removed };
+    const mv = chooseAIMove(snapshot, state.aiSide, state.difficulty, FLY_ENABLED);
+    if (!mv) { aiThinking = false; state = checkEndgame({ ...state }); renderGame(); return; }
+    const me = state.aiSide;
+    const opp = me === "W" ? "B" : "W";
+    const nb = [...state.board];
+    const nhand = { ...state.hand };
+    if (mv.type === "place") { nb[mv.to] = me; nhand[me]--; }
+    else { nb[mv.from] = null; nb[mv.to] = me; }
+    if (mv.remove !== null && mv.remove !== undefined) {
+      state = { ...state, board: nb, hand: nhand, phase: "remove" };
+      renderGame();
+      setTimeout(() => {
+        const nb2 = [...state.board]; nb2[mv.remove] = null;
+        const nremoved = { ...state.removed, [opp]: state.removed[opp] + 1 };
+        const nt = opp;
+        state = checkEndgame({ ...state, board: nb2, removed: nremoved, turn: nt,
+          phase: state.hand[nt] > 0 ? "place" : "move", selected: null });
+        aiThinking = false;
+        renderGame(); scheduleAI();
+      }, 600);
+    } else {
+      const nt = opp;
+      state = checkEndgame({ ...state, board: nb, hand: nhand, turn: nt,
+        phase: nhand[nt] > 0 ? "place" : "move", selected: null });
+      aiThinking = false;
+      renderGame(); scheduleAI();
+    }
+  }, 450);
+}
+
+// Remote
+function randomCode(len = 4) {
+  let s = "";
+  for (let i = 0; i < len; i++) s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
+  return s;
+}
+
+function teardownPeer() {
+  try { if (conn) conn.close(); } catch(e) {}
+  try { if (peer) peer.destroy(); } catch(e) {}
+  conn = null; peer = null;
+}
+
+function hostGame() {
+  teardownPeer();
+  remoteError = "";
+  roomCode = randomCode(4);
+  remoteRole = "host";
+  mySide = "W";
+  remoteStatus = "creating";
+  renderRemoteHost();
+
+  peer = new Peer(PEER_PREFIX + roomCode, { debug: 1 });
+  peer.on("open", () => { remoteStatus = "waiting"; renderRemoteHost(); });
+  peer.on("connection", (c) => {
+    if (conn && conn.open) { try { c.close(); } catch(e){} return; }
+    conn = c; wireConnection();
+  });
+  peer.on("error", (err) => {
+    console.warn("Peer error", err);
+    if (err.type === "unavailable-id") {
+      roomCode = randomCode(5); teardownPeer(); hostGame(); return;
+    }
+    remoteStatus = "error";
+    remoteError = err.message || "Connection problem. Please try again.";
+    renderRemoteHost();
+  });
+}
+
+function joinGame(code) {
+  teardownPeer();
+  remoteError = "";
+  roomCode = code.toUpperCase();
+  remoteRole = "guest";
+  mySide = "B";
+  remoteStatus = "joining";
+  renderRemoteJoin();
+
+  peer = new Peer(undefined, { debug: 1 });
+  peer.on("open", () => {
+    conn = peer.connect(PEER_PREFIX + roomCode, { reliable: true });
+    wireConnection();
+    setTimeout(() => {
+      if (remoteStatus === "joining") {
+        remoteStatus = "error";
+        remoteError = `No game found with code ${roomCode}. Check the code, or ask the host to restart.`;
+        teardownPeer();
+        renderRemoteJoin();
+      }
+    }, 8000);
+  });
+  peer.on("error", (err) => {
+    console.warn("Peer error", err);
+    if (err.type === "peer-unavailable") {
+      remoteStatus = "error";
+      remoteError = `No game found with code ${roomCode}.`;
+    } else {
+      remoteStatus = "error";
+      remoteError = err.message || "Connection problem.";
+    }
+    renderRemoteJoin();
+  });
+}
+
+function wireConnection() {
+  if (!conn) return;
+  conn.on("open", () => {
+    remoteStatus = "connected";
+    if (remoteRole === "host") {
+      newGame("remote");
+      try { conn.send({ type: "init", state: serializeState(state) }); } catch(e){}
+    } else {
+      renderRemoteJoin();
+    }
+  });
+  conn.on("data", (data) => {
+    if (!data || typeof data !== "object") return;
+    if (data.type === "init" && remoteRole === "guest") {
+      state = deserializeState(data.state); renderGame(); return;
+    }
+    if (data.type === "tap") {
+      if (!state) return;
+      const ns = applyTap(state, data.idx);
+      if (ns === null) return;
+      state = ns; renderGame(); return;
+    }
+    if (data.type === "reset") {
+      state = deserializeState(data.state); renderGame(); return;
+    }
+  });
+  conn.on("close", () => {
+    remoteStatus = "disconnected";
+    if (state) renderGame();
+  });
+  conn.on("error", (err) => {
+    console.warn("Conn error", err);
+    remoteStatus = "error";
+    remoteError = "Connection lost.";
+    if (state) renderGame();
+  });
+}
+
+function serializeState(s) {
+  return { board: s.board, hand: s.hand, removed: s.removed,
+    turn: s.turn, phase: s.phase, selected: s.selected, winner: s.winner };
+}
+function deserializeState(d) {
+  return { ...d, mode: "remote", aiSide: "B", difficulty: "medium" };
+}
+
+function remoteReset() {
+  if (remoteRole !== "host") return;
+  newGame("remote");
+  try { if (conn && conn.open) conn.send({ type: "reset", state: serializeState(state) }); } catch(e){}
+}
+
+// Rendering
+function renderBoard() {
+  const size = boardSize;
+  const pad = size * 0.09;
+  const inner = size - pad*2;
+  const cell = inner / 6;
+  const coord = (gx, gy) => [pad + gx*cell, pad + gy*cell];
+  const sq = (inset) => {
+    const s = inset * cell;
+    return [[pad+s, pad+s], [pad+inner-s, pad+s], [pad+inner-s, pad+inner-s], [pad+s, pad+inner-s]];
+  };
+  const outer = sq(0), middle = sq(1), innerSq = sq(2);
+  const spokes = [
+    [[pad+3*cell, pad], [pad+3*cell, pad+2*cell]],
+    [[pad+3*cell, pad+4*cell], [pad+3*cell, pad+6*cell]],
+    [[pad, pad+3*cell], [pad+2*cell, pad+3*cell]],
+    [[pad+4*cell, pad+3*cell], [pad+6*cell, pad+3*cell]],
+  ];
+  const pointPx = POINTS.map(([gx,gy]) => coord(gx,gy));
+  const radius = size * 0.038;
+  const tapRadius = size * 0.065;
+  const highlighted = getHighlighted();
+  const polyStr = pts => pts.map(p => p.join(",")).join(" ");
+
+  let millLines = "";
+  MILLS.forEach((m) => {
+    const isW = m.every(i => state.board[i]==="W");
+    const isB = m.every(i => state.board[i]==="B");
+    if (!isW && !isB) return;
+    const p1 = pointPx[m[0]], p3 = pointPx[m[2]];
+    const color = isW ? "#fff2c4" : "#d4a03c";
+    millLines += `<line x1="${p1[0]}" y1="${p1[1]}" x2="${p3[0]}" y2="${p3[1]}" stroke="${color}" stroke-width="${size*0.015}" stroke-linecap="round" opacity="0.85">
+      <animate attributeName="opacity" values="0.55;0.95;0.55" dur="2.4s" repeatCount="indefinite" />
+    </line>`;
+  });
+
+  let pointGroups = "";
+  pointPx.forEach(([x,y], i) => {
+    const piece = state.board[i];
+    const isHL = highlighted.has(i);
+    const isSel = state.selected === i;
+    const canTap = canInteract() && isHL;
+    const cursor = canTap ? "pointer" : "default";
+    let html = `<g data-idx="${i}" style="cursor:${cursor}">`;
+    html += `<circle cx="${x}" cy="${y}" r="${tapRadius}" fill="transparent" />`;
+    html += `<circle cx="${x}" cy="${y}" r="${radius*0.55}" fill="url(#brassDot)" stroke="#5a4010" stroke-width="0.6" />`;
+    if (isHL && !piece) {
+      html += `<circle cx="${x}" cy="${y}" r="${radius*1.05}" fill="none" stroke="#f6d888" stroke-width="${size*0.006}" opacity="0.9">
+        <animate attributeName="r" values="${radius*0.95};${radius*1.2};${radius*0.95}" dur="1.8s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.5;0.95;0.5" dur="1.8s" repeatCount="indefinite" />
+      </circle>`;
+    }
+    if (isHL && piece && state.phase !== "remove") {
+      html += `<circle cx="${x}" cy="${y}" r="${radius*1.25}" fill="none" stroke="#f6d888" stroke-width="${size*0.006}" opacity="0.8" stroke-dasharray="3 3" />`;
+    }
+    if (isHL && state.phase === "remove") {
+      html += `<circle cx="${x}" cy="${y}" r="${radius*1.3}" fill="none" stroke="#d23a2b" stroke-width="${size*0.008}" opacity="0.85">
+        <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" repeatCount="indefinite" />
+      </circle>`;
+    }
+    if (isSel) {
+      html += `<circle cx="${x}" cy="${y}" r="${radius*1.35}" fill="none" stroke="#f6d888" stroke-width="${size*0.007}" opacity="0.95" />`;
+    }
+    if (piece) {
+      const fill = piece==="W" ? "url(#ivory)" : "url(#ebony)";
+      const stroke = piece==="W" ? "#8e7638" : "#000";
+      const hlFill = piece==="W" ? "#fff7df" : "#7a5e4e";
+      const hlOp = piece==="W" ? "0.55" : "0.35";
+      html += `<g filter="url(#pieceShadow)">
+        <circle cx="${x}" cy="${y}" r="${radius}" fill="${fill}" stroke="${stroke}" stroke-width="0.6" />
+        <circle cx="${x - radius*0.28}" cy="${y - radius*0.3}" r="${radius*0.35}" fill="${hlFill}" opacity="${hlOp}" />
+      </g>`;
+    }
+    html += `</g>`;
+    pointGroups += html;
+  });
+
+  const svg = `
+    <svg class="board" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <defs>
+        <radialGradient id="ivory" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#fbf3dc" /><stop offset="55%" stop-color="#ead9a8" /><stop offset="100%" stop-color="#9c8654" />
+        </radialGradient>
+        <radialGradient id="ebony" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#5a463a" /><stop offset="50%" stop-color="#2c1d14" /><stop offset="100%" stop-color="#0d0704" />
+        </radialGradient>
+        <radialGradient id="brassDot" cx="40%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#f6d888" /><stop offset="60%" stop-color="#b88a2e" /><stop offset="100%" stop-color="#6a4e18" />
+        </radialGradient>
+        <filter id="pieceShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" />
+          <feOffset dx="0" dy="1.2" result="off" />
+          <feComponentTransfer><feFuncA type="linear" slope="0.55"/></feComponentTransfer>
+          <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="carvedLine"><feGaussianBlur stdDeviation="0.4" /></filter>
+      </defs>
+      <g stroke="#1a0e06" stroke-width="${size*0.012}" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.55" filter="url(#carvedLine)">
+        <polygon points="${polyStr(outer)}" />
+        <polygon points="${polyStr(middle)}" />
+        <polygon points="${polyStr(innerSq)}" />
+        ${spokes.map(s => `<line x1="${s[0][0]}" y1="${s[0][1]}" x2="${s[1][0]}" y2="${s[1][1]}" />`).join("")}
+      </g>
+      <g stroke="#c9982a" stroke-width="${size*0.006}" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <polygon points="${polyStr(outer)}" />
+        <polygon points="${polyStr(middle)}" />
+        <polygon points="${polyStr(innerSq)}" />
+        ${spokes.map(s => `<line x1="${s[0][0]}" y1="${s[0][1]}" x2="${s[1][0]}" y2="${s[1][1]}" />`).join("")}
+      </g>
+      ${millLines}
+      ${pointGroups}
+    </svg>`;
+
+  return `<div class="board-wrap" style="width:${size}px;height:${size}px">
+    <div class="board-bg"></div><div class="board-grain"></div><div class="board-edge"></div>
+    ${svg}
+  </div>`;
+}
+
+function renderBadge(side) {
+  const active = state.turn === side && state.phase !== "gameover";
+  const label = side === "W" ? "Ivory" : "Ebony";
+  const hand = state.hand[side];
+  const onBoard = piecesOnBoard(side);
+  const flying = isFlying(side);
+  const stats = hand > 0 ? `${hand} to place` : `${onBoard} on board${flying ? " · flying" : ""}`;
+  const isMe = state.mode === "remote" && mySide === side;
+  const youTag = isMe ? `<span class="you-tag">YOU</span>` : "";
+  return `<div class="badge ${active ? "active" : ""}">
+    <div class="badge-piece ${side==="W" ? "ivory" : "ebony"}"></div>
+    <div style="flex:1;min-width:0">
+      <div class="badge-name">${label}${youTag}</div>
+      <div class="badge-stats">${stats}</div>
+    </div>
+  </div>`;
+}
+
+function renderGame() {
+  resetBoardSize();
+  const app = document.getElementById("app");
+  if (!state) { showMenu(); return; }
+
+  let statusClass = "status";
+  if (state.phase === "remove") statusClass = "status remove";
+  if (state.mode === "remote" && state.turn !== mySide && state.phase !== "gameover") statusClass = "status waiting";
+  const statusHtml = aiThinking
+    ? `<span class="dots">Thinking<span>.</span><span>.</span><span>.</span></span>`
+    : statusMessage();
+
+  const isHost = state.mode === "remote" && remoteRole === "host";
+  const gameOverBtns = state.mode === "remote"
+    ? (isHost
+        ? `<button class="btn-primary" id="playAgain">Play again</button>
+           <button class="btn-ghost" id="backToMenu">End game</button>`
+        : `<div style="color:#a88e5c;font-style:italic;font-size:14px">Waiting for the host to start a new game…</div>
+           <button class="btn-ghost" id="backToMenu">End game</button>`)
+    : `<button class="btn-primary" id="playAgain">Play again</button>
+       <button class="btn-ghost" id="backToMenu">Main menu</button>`;
+  const gameOverHtml = state.phase === "gameover" ? `
+    <div class="game-over">
+      <div class="game-over-text">${state.winner === "W" ? "Ivory" : "Ebony"} wins</div>
+      ${gameOverBtns}
+    </div>` : "";
+
+  let connBar = "";
+  if (state.mode === "remote") {
+    const dotClass = remoteStatus === "connected" ? "" : (remoteStatus === "disconnected" || remoteStatus === "error") ? "disconnected" : "connecting";
+    const label = remoteStatus === "connected"
+      ? `Connected · Room <strong style="color:#f0d48a">${roomCode}</strong>`
+      : remoteStatus === "disconnected" ? "Opponent disconnected"
+      : remoteStatus === "error" ? (remoteError || "Connection error")
+      : "Connecting…";
+    connBar = `<div class="conn-bar"><span class="connection-dot ${dotClass}"></span>${label}</div>`;
+  }
+
+  const resetBtnHtml = (state.mode === "remote" && !isHost)
+    ? `<button class="icon-btn" style="opacity:0.3;pointer-events:none" aria-label="Reset (host only)">
+         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
+       </button>`
+    : `<button class="icon-btn" id="resetBtn" aria-label="Reset">
+         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
+       </button>`;
+
+  app.innerHTML = `
+    <div class="header">
+      <button class="icon-btn" id="menuBtn" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12L12 3l9 9M5 10v10h14V10"/></svg>
+      </button>
+      <div class="title">Nine Men's Morris</div>
+      ${resetBtnHtml}
+    </div>
+    ${connBar}
+    <div class="score-row">${renderBadge("W")}${renderBadge("B")}</div>
+    <div class="${statusClass}">${statusHtml}</div>
+    ${renderBoard()}
+    ${gameOverHtml}
+  `;
+
+  document.getElementById("menuBtn").onclick = () => {
+    if (state.mode === "remote") teardownPeer();
+    remoteStatus = "idle"; remoteError = ""; roomCode = null; remoteRole = null; mySide = null;
+    showMenu();
+  };
+  const rb = document.getElementById("resetBtn");
+  if (rb) rb.onclick = () => {
+    if (state.mode === "remote") remoteReset();
+    else newGame(state.mode, { aiSide: state.aiSide, difficulty: state.difficulty });
+  };
+  const pa = document.getElementById("playAgain");
+  if (pa) pa.onclick = () => {
+    if (state.mode === "remote") remoteReset();
+    else newGame(state.mode, { aiSide: state.aiSide, difficulty: state.difficulty });
+  };
+  const bm = document.getElementById("backToMenu");
+  if (bm) bm.onclick = () => {
+    if (state.mode === "remote") teardownPeer();
+    remoteStatus = "idle"; remoteError = ""; roomCode = null; remoteRole = null; mySide = null;
+    showMenu();
+  };
+
+  app.querySelectorAll("g[data-idx]").forEach(g => {
+    g.addEventListener("click", () => {
+      const idx = parseInt(g.getAttribute("data-idx"), 10);
+      handleTap(idx);
+    });
+  });
+}
+
+let menuView = "home";
+let menuAiSide = "B";
+let menuDifficulty = "medium";
+
+function showMenu() { menuView = "home"; renderMenu(); }
+
+function renderMenu() {
+  const app = document.getElementById("app");
+  let content = "";
+  if (menuView === "home") {
+    content = `
+      <div class="menu-buttons">
+        <button class="btn-primary" id="btnRemote">Play online (two phones)</button>
+        <button class="btn-secondary" id="btnAi">Play against Claude</button>
+        <button class="btn-secondary" id="btnLocal">Two players (pass &amp; play)</button>
+        <button class="btn-ghost" id="btnRules">How to play</button>
+      </div>`;
+  } else if (menuView === "remote") {
+    content = `
+      <div class="menu-buttons">
+        <button class="btn-primary" id="btnHost">Create game</button>
+        <button class="btn-secondary" id="btnJoin">Join game</button>
+        <button class="btn-ghost" id="btnBack">Back</button>
+      </div>`;
+  } else if (menuView === "ai") {
+    content = `
+      <div class="menu-buttons">
+        <div class="opt-label">Your side</div>
+        <div class="segmented">
+          <button class="seg-btn ${menuAiSide==="B"?"active":""}" data-side="B">Ivory (first)</button>
+          <button class="seg-btn ${menuAiSide==="W"?"active":""}" data-side="W">Ebony (second)</button>
+        </div>
+        <div class="opt-label">Difficulty</div>
+        <div class="segmented">
+          <button class="seg-btn ${menuDifficulty==="easy"?"active":""}" data-diff="easy">Easy</button>
+          <button class="seg-btn ${menuDifficulty==="medium"?"active":""}" data-diff="medium">Medium</button>
+          <button class="seg-btn ${menuDifficulty==="hard"?"active":""}" data-diff="hard">Hard</button>
+        </div>
+        <button class="btn-primary" id="btnBegin" style="margin-top:18px">Begin</button>
+        <button class="btn-ghost" id="btnBack">Back</button>
+      </div>`;
+  } else if (menuView === "rules") {
+    content = `
+      <div class="rules">
+        <h3>The Board</h3><p>Three nested squares joined at their midpoints — twenty-four points in total.</p>
+        <h3>Phase 1 — Placing</h3><p>Each player has nine pieces. Take turns placing one piece on any empty point.</p>
+        <h3>Phase 2 — Moving</h3><p>Once all pieces are placed, move one of your pieces along a line to an adjacent empty point.</p>
+        <h3>Mills</h3><p>Line up three of your pieces along a square edge or spoke to form a <em>mill</em>. When you form one, remove any opposing piece that is not itself part of a mill (unless all opponent pieces are in mills).</p>
+        <h3>Phase 3 — Flying</h3><p>When reduced to three pieces, you may leap to any empty point on the board.</p>
+        <h3>Victory</h3><p>Win by reducing your opponent to two pieces, or by leaving them with no legal move.</p>
+        <h3>Playing online</h3><p>One player taps <em>Create game</em> and shares the 4-letter room code. The other taps <em>Join game</em> and enters it. Both phones must be online; moves sync instantly peer-to-peer.</p>
+        <button class="btn-ghost" id="btnBack" style="margin-top:10px">Back</button>
+      </div>`;
+  }
+
+  app.innerHTML = `
+    <div class="menu-wrap">
+      <div class="crest-row"><div class="crest">
+        <svg width="84" height="84" viewBox="0 0 84 84">
+          <defs><radialGradient id="menuBrass" cx="40%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#f6d888" /><stop offset="60%" stop-color="#b88a2e" /><stop offset="100%" stop-color="#5a3e10" />
+          </radialGradient></defs>
+          <rect x="8" y="8" width="68" height="68" fill="none" stroke="url(#menuBrass)" stroke-width="1.6" />
+          <rect x="20" y="20" width="44" height="44" fill="none" stroke="url(#menuBrass)" stroke-width="1.6" />
+          <rect x="32" y="32" width="20" height="20" fill="none" stroke="url(#menuBrass)" stroke-width="1.6" />
+          <line x1="42" y1="8" x2="42" y2="32" stroke="url(#menuBrass)" stroke-width="1.6" />
+          <line x1="42" y1="52" x2="42" y2="76" stroke="url(#menuBrass)" stroke-width="1.6" />
+          <line x1="8" y1="42" x2="32" y2="42" stroke="url(#menuBrass)" stroke-width="1.6" />
+          <line x1="52" y1="42" x2="76" y2="42" stroke="url(#menuBrass)" stroke-width="1.6" />
+          ${[[8,8],[42,8],[76,8],[20,20],[42,20],[64,20],[32,32],[42,32],[52,32],
+             [8,42],[20,42],[32,42],[52,42],[64,42],[76,42],
+             [32,52],[42,52],[52,52],[20,64],[42,64],[64,64],[8,76],[42,76],[76,76]]
+            .map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="2.2" fill="url(#menuBrass)" />`).join("")}
+        </svg>
+      </div></div>
+      <h1 class="menu-title">Nine Men's Morris</h1>
+      <div class="menu-sub">An ancient game of three squares</div>
+      ${content}
+      <div class="footer">Made for Martin · v2</div>
+    </div>`;
+
+  if (menuView === "home") {
+    document.getElementById("btnRemote").onclick = () => { menuView = "remote"; renderMenu(); };
+    document.getElementById("btnAi").onclick = () => { menuView = "ai"; renderMenu(); };
+    document.getElementById("btnLocal").onclick = () => newGame("local");
+    document.getElementById("btnRules").onclick = () => { menuView = "rules"; renderMenu(); };
+  } else if (menuView === "remote") {
+    document.getElementById("btnHost").onclick = () => hostGame();
+    document.getElementById("btnJoin").onclick = () => { remoteStatus = "idle"; remoteError = ""; renderRemoteJoin(); };
+    document.getElementById("btnBack").onclick = () => { menuView = "home"; renderMenu(); };
+  } else if (menuView === "ai") {
+    document.querySelectorAll("[data-side]").forEach(b => {
+      b.onclick = () => { menuAiSide = b.getAttribute("data-side"); renderMenu(); };
+    });
+    document.querySelectorAll("[data-diff]").forEach(b => {
+      b.onclick = () => { menuDifficulty = b.getAttribute("data-diff"); renderMenu(); };
+    });
+    document.getElementById("btnBegin").onclick = () => newGame("ai", { aiSide: menuAiSide, difficulty: menuDifficulty });
+    document.getElementById("btnBack").onclick = () => { menuView = "home"; renderMenu(); };
+  } else if (menuView === "rules") {
+    document.getElementById("btnBack").onclick = () => { menuView = "home"; renderMenu(); };
+  }
+}
+
+function renderRemoteHost() {
+  const app = document.getElementById("app");
+  let body = "";
+  if (remoteStatus === "creating") {
+    body = `<div class="room-label">Preparing</div>
+            <div class="conn-bar"><span class="connection-dot connecting"></span>Starting the room…</div>`;
+  } else if (remoteStatus === "waiting") {
+    body = `<div class="room-label">Your room code</div>
+            <div class="room-code">${roomCode}</div>
+            <div class="room-hint">Share this with your opponent. Waiting for them to join…</div>
+            <div class="conn-bar"><span class="connection-dot connecting"></span>Waiting</div>
+            <div class="room-share">
+              <button class="btn-secondary" id="copyBtn">Copy code</button>
+              <button class="btn-secondary" id="shareBtn">Share</button>
+            </div>`;
+  } else if (remoteStatus === "error") {
+    body = `<div class="error-msg">${remoteError || "Something went wrong."}</div>
+            <button class="btn-primary" id="retryBtn">Try again</button>`;
+  } else if (remoteStatus === "connected") {
+    renderGame(); return;
+  }
+  app.innerHTML = `
+    <div class="menu-wrap">
+      <h1 class="menu-title" style="font-size:24px">Create game</h1>
+      <div class="menu-sub">You'll play Ivory and move first</div>
+      <div class="room-panel">${body}</div>
+      <div style="margin-top:16px"><button class="btn-ghost" id="backBtn">Cancel</button></div>
+    </div>`;
+  const cp = document.getElementById("copyBtn");
+  if (cp) cp.onclick = async () => {
+    try { await navigator.clipboard.writeText(roomCode); cp.textContent = "Copied ✓"; setTimeout(() => cp.textContent = "Copy code", 1500); } catch(e){}
+  };
+  const sh = document.getElementById("shareBtn");
+  if (sh) sh.onclick = async () => {
+    const text = `Play Nine Men's Morris with me. Room code: ${roomCode}`;
+    if (navigator.share) { try { await navigator.share({ text }); } catch(e){} }
+    else { try { await navigator.clipboard.writeText(text); sh.textContent = "Copied ✓"; setTimeout(() => sh.textContent = "Share", 1500); } catch(e){} }
+  };
+  const rt = document.getElementById("retryBtn");
+  if (rt) rt.onclick = () => hostGame();
+  document.getElementById("backBtn").onclick = () => {
+    teardownPeer();
+    remoteStatus = "idle"; remoteError = ""; roomCode = null; remoteRole = null; mySide = null;
+    menuView = "remote"; renderMenu();
+  };
+}
+
+let joinInputVal = "";
+function renderRemoteJoin() {
+  const app = document.getElementById("app");
+  let body = "";
+  if (remoteStatus === "idle" || remoteStatus === "error") {
+    body = `
+      ${remoteStatus === "error" ? `<div class="error-msg">${remoteError}</div>` : ""}
+      <div class="room-label">Enter room code</div>
+      <input type="text" class="code-input" id="codeInput" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" value="${joinInputVal}" placeholder="———" />
+      <button class="btn-primary" id="joinBtn">Join</button>`;
+  } else if (remoteStatus === "joining") {
+    body = `<div class="room-label">Connecting to</div>
+            <div class="room-code">${roomCode}</div>
+            <div class="conn-bar"><span class="connection-dot connecting"></span>Connecting…</div>`;
+  } else if (remoteStatus === "connected") {
+    renderGame(); return;
+  }
+  app.innerHTML = `
+    <div class="menu-wrap">
+      <h1 class="menu-title" style="font-size:24px">Join game</h1>
+      <div class="menu-sub">You'll play Ebony and move second</div>
+      <div class="room-panel">${body}</div>
+      <div style="margin-top:16px"><button class="btn-ghost" id="backBtn">Cancel</button></div>
+    </div>`;
+  const ci = document.getElementById("codeInput");
+  if (ci) {
+    ci.focus();
+    ci.addEventListener("input", (e) => {
+      const v = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
+      e.target.value = v; joinInputVal = v;
+    });
+    ci.addEventListener("keypress", (e) => {
+      if (e.key === "Enter" && ci.value.length === 4) joinGame(ci.value);
+    });
+  }
+  const jb = document.getElementById("joinBtn");
+  if (jb) jb.onclick = () => {
+    const v = document.getElementById("codeInput").value;
+    if (v.length === 4) joinGame(v);
+  };
+  document.getElementById("backBtn").onclick = () => {
+    teardownPeer();
+    remoteStatus = "idle"; remoteError = ""; roomCode = null; remoteRole = null; mySide = null; joinInputVal = "";
+    menuView = "remote"; renderMenu();
+  };
+}
+
+window.addEventListener("resize", () => {
+  if (state && state.phase !== undefined) renderGame();
+});
+showMenu();
+</script>
+</body>
+</html>
