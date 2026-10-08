@@ -905,7 +905,7 @@ function renderMenu() {
         <h3>Mills</h3><p>Line up three of your pieces along a square edge or spoke to form a <em>mill</em>. When you form one, remove any opposing piece that is not itself part of a mill (unless all opponent pieces are in mills).</p>
         <h3>Phase 3 — Flying</h3><p>When reduced to three pieces, you may leap to any empty point on the board.</p>
         <h3>Victory</h3><p>Win by reducing your opponent to two pieces, or by leaving them with no legal move.</p>
-        <h3>Playing online</h3><p>One player taps <em>Create game</em> and shares the 4-letter room code. The other taps <em>Join game</em> and enters it. Both phones must be online; moves sync instantly peer-to-peer.</p>
+        <h3>Playing online</h3><p>One player taps <em>Create game</em> and shares the room code (4 letters, occasionally 5). The other taps <em>Join game</em> and enters it. Both phones must be online; moves sync instantly peer-to-peer.</p>
         <button class="btn-ghost" id="btnBack" style="margin-top:10px">Back</button>
       </div>`;
   }
@@ -1014,7 +1014,7 @@ function renderRemoteJoin() {
     body = `
       ${remoteStatus === "error" ? `<div class="error-msg">${remoteError}</div>` : ""}
       <div class="room-label">Enter room code</div>
-      <input type="text" class="code-input" id="codeInput" maxlength="4" autocapitalize="characters" autocomplete="off" spellcheck="false" value="${joinInputVal}" placeholder="———" />
+      <input type="text" class="code-input" id="codeInput" maxlength="5" autocapitalize="characters" autocomplete="off" spellcheck="false" value="${joinInputVal}" placeholder="———" />
       <button class="btn-primary" id="joinBtn">Join</button>`;
   } else if (remoteStatus === "joining") {
     body = `<div class="room-label">Connecting to</div>
@@ -1034,17 +1034,17 @@ function renderRemoteJoin() {
   if (ci) {
     ci.focus();
     ci.addEventListener("input", (e) => {
-      const v = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4);
+      const v = e.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5);
       e.target.value = v; joinInputVal = v;
     });
     ci.addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && ci.value.length === 4) joinGame(ci.value);
+      if (e.key === "Enter" && ci.value.length >= 4) joinGame(ci.value);
     });
   }
   const jb = document.getElementById("joinBtn");
   if (jb) jb.onclick = () => {
     const v = document.getElementById("codeInput").value;
-    if (v.length === 4) joinGame(v);
+    if (v.length >= 4) joinGame(v);
   };
   document.getElementById("backBtn").onclick = () => {
     teardownPeer();

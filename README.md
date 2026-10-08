@@ -42,6 +42,6 @@ Testing online play on one machine needs two browser windows (or devices) and an
 ## Notes
 
 - The page footer reads "Made for Martin · v2".
-- Peer IDs are prefixed `morris-v1-` plus the room code. If the ID is already taken the host retries with a five-letter code, but the join box accepts only four characters, so a five-letter room could not be joined (a latent bug in the code).
+- Peer IDs are prefixed `morris-v1-` plus the room code. Room codes are four letters; if the ID is already taken the host retries with a five-letter code, and the join box accepts four or five letters.
 
 Built by Martin Hollingham.
